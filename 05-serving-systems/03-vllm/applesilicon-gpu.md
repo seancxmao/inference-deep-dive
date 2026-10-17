@@ -211,8 +211,15 @@ INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 ```
 
+要点：
+
+* 只有APIServer和EngineCore，没有Worker进程
+* MLX device set to: Device(gpu, 0)
+* MLX-VLM model loaded in 1.14s: Qwen/Qwen3.5-0.8B
 
 ## Install latest dev build with the curl installer
+
+### Install
 
 ```
 ❯ curl -fsSL https://raw.githubusercontent.com/vllm-project/vllm-metal/main/install.sh | bash
@@ -292,15 +299,121 @@ Or add the venv to your PATH:
   export PATH="/Users/maochenxiao/.venv-vllm-metal/bin:$PATH"
 ```
 
+以前用同样的方法安装过，所以大部分dependency是更新。
+
+### Serve
+
+保留完整日志，供细看。
+
+```
+❯ source /Users/maochenxiao/.venv-vllm-metal/bin/activate
+~ via 🐍 v3.12.13 (.venv-vllm-metal)
+❯ vllm serve Qwen/Qwen3.5-0.8B --gpu-memory-utilization 0.5
+W1017 23:02:10.906000 36212 torch/_library/triton.py:53] Triton not available, find_triton_kernels = []
+(APIServer pid=36212) INFO 10-17 23:02:10 [api_utils.py:347]
+(APIServer pid=36212) INFO 10-17 23:02:10 [api_utils.py:347]        █     █     █▄   ▄█
+(APIServer pid=36212) INFO 10-17 23:02:10 [api_utils.py:347]  ▄▄ ▄█ █     █     █ ▀▄▀ █  version 0.31.0
+(APIServer pid=36212) INFO 10-17 23:02:10 [api_utils.py:347]   █▄█▀ █     █     █     █  model   Qwen/Qwen3.5-0.8B
+(APIServer pid=36212) INFO 10-17 23:02:10 [api_utils.py:347]    ▀▀  ▀▀▀▀▀ ▀▀▀▀▀ ▀     ▀
+(APIServer pid=36212) INFO 10-17 23:02:10 [api_utils.py:347]
+(APIServer pid=36212) INFO 10-17 23:02:10 [api_utils.py:286] non-default args: {'model_tag': 'Qwen/Qwen3.5-0.8B', 'model': 'Qwen/Qwen3.5-0.8B', 'gpu_memory_utilization': 0.5}
+(APIServer pid=36212) WARNING 10-17 23:02:10 [system_utils.py:249] Found ulimit of 2048 and failed to automatically increase with error current limit exceeds maximum limit. This can cause fd limit errors like `OSError: [Errno 24] Too many open files`. Consider increasing with ulimit -n
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+(APIServer pid=36212) INFO 10-17 23:02:14 [model.py:699] Resolved architecture: Qwen3_5ForConditionalGeneration
+(APIServer pid=36212) INFO 10-17 23:02:14 [model.py:2109] Using max model len 262144
+(APIServer pid=36212) INFO 10-17 23:02:18 [config.py:643] Mamba cache mode is set to 'align' for Qwen3_5ForConditionalGeneration by default when prefix caching is enabled
+Parse safetensors files: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:04<00:00,  4.73s/it]
+(APIServer pid=36212) INFO 10-17 23:02:24 [kernel.py:408] Final IR op priority after setting platform defaults: IrOpPriorityConfig(rms_norm=['native'], fused_add_rms_norm=['native'], gelu_and_mul_sparse=['native'])
+(APIServer pid=36212) INFO 10-17 23:02:24 [platform.py:961] Metal: chunked prefill enabled (paged attention), max_num_batched_tokens=2048
+(APIServer pid=36212) INFO 10-17 23:02:24 [platform.py:1085] Metal memory: 19.3GB total, 11.2GB available
+(EngineCore pid=36217) INFO 10-17 23:02:38 [core.py:129] Initializing a V1 LLM engine (v0.31.0) with config: model='Qwen/Qwen3.5-0.8B', speculative_config=None, tokenizer='Qwen/Qwen3.5-0.8B', skip_tokenizer_init=False, tokenizer_mode=auto, revision=main, tokenizer_revision=main, trust_remote_code=False, dtype=torch.bfloat16, max_seq_len=262144, download_dir=None, load_format=auto, tensor_parallel_size=1, pipeline_parallel_size=1, data_parallel_size=1, decode_context_parallel_size=1, dcp_comm_backend=ag_rs, disable_custom_all_reduce=True, quantization=None, quantization_config=None, enforce_eager=False, aux_output_config=AuxOutputConfig(enable_return_routed_experts=False, max_bytes=None), kv_cache_dtype=auto, device_config=cpu, structured_outputs_config=StructuredOutputsConfig(backend='auto', disable_any_whitespace=False, disable_additional_properties=False, reasoning_parser='', reasoning_parser_plugin='', enable_in_reasoning=False), observability_config=ObservabilityConfig(show_hidden_metrics_for_version=None, otlp_traces_endpoint=None, collect_detailed_traces=None, per_request_spec_decode_metrics='none', kv_cache_metrics=False, kv_cache_metrics_sample=0.01, cudagraph_metrics=False, enable_layerwise_nvtx_tracing=False, enable_mfu_metrics=False, enable_mm_processor_stats=False, enable_logging_iteration_details=False, jit_monitor_mode='warn', jit_monitor_verbose=False), seed=0, served_model_name=Qwen/Qwen3.5-0.8B, enable_prefix_caching=True, enable_chunked_prefill=True, pooler_config=None, compilation_config={'mode': <CompilationMode.VLLM_COMPILE: 3>, 'debug_dump_path': None, 'cache_dir': '', 'compile_cache_save_format': 'binary', 'backend': 'inductor', 'custom_ops': ['none'], 'ir_enable_torch_wrap': True, 'splitting_ops': ['vllm::unified_attention_with_output', 'vllm::unified_mla_attention_with_output', 'vllm::mamba_mixer2', 'vllm::mamba_mixer', 'vllm::short_conv', 'vllm::qwen4_exp_ple_short_conv', 'vllm::qwen4_exp_qsa_with_output', 'vllm::linear_attention', 'vllm::qwen_gdn_attention_core', 'vllm::qwen_gdn_attention_core_fused_norm_packed', 'vllm::gdn_attention_core_xpu', 'vllm::olmo_hybrid_gdn_full_forward', 'vllm::sparse_attn_indexer', 'vllm::rocm_aiter_sparse_attn_indexer', 'vllm::deepseek_v4_attention', 'vllm::hpc_rope_norm_forward', 'vllm::unified_kv_cache_update', 'vllm::unified_mla_kv_cache_update'], 'compile_mm_encoder': False, 'cudagraph_mm_encoder': False, 'encoder_cudagraph_token_budgets': [], 'encoder_cudagraph_max_vision_items_per_batch': 0, 'encoder_cudagraph_max_frames_per_batch': None, 'compile_sizes': None, 'compile_ranges_endpoints': [2048], 'inductor_compile_config': {'enable_auto_functionalized_v2': False, 'combo_kernels': True, 'benchmark_combo_kernel': True}, 'inductor_passes': {}, 'cudagraph_mode': <CUDAGraphMode.NONE: 0>, 'cudagraph_num_of_warmups': 0, 'cudagraph_capture_sizes': None, 'cudagraph_copy_inputs': False, 'cudagraph_specialize_lora': True, 'use_inductor_graph_partition': False, 'pass_config': {'fuse_norm_quant': False, 'fuse_act_quant': False, 'fuse_attn_quant': False, 'enable_sp': False, 'fuse_gemm_comms': False, 'fuse_allreduce_rms': False, 'enable_qk_norm_rope_fusion': False, 'fuse_rope_kvcache_cat_mla': False, 'fuse_act_padding': False, 'fuse_qk_norm_rope_kvcache': False}, 'max_cudagraph_capture_size': None, 'dynamic_shapes_config': {'type': <DynamicShapesType.BACKED: 'backed'>, 'evaluate_guards': False, 'assume_32_bit_indexing': False}, 'local_cache_dir': None, 'fast_moe_cold_start': False, 'static_all_moe_layers': []}, kernel_config=KernelConfig(ir_op_priority=IrOpPriorityConfig(rms_norm=['native'], fused_add_rms_norm=['native'], gelu_and_mul_sparse=['native']), enable_flashinfer_autotune=True, enable_cutedsl_warmup=True, enable_jit_warmup=True, moe_backend='auto', sparse_indexer_topk_backend='auto', linear_backend='auto', linear_backend_per_quant=None)
+W1017 23:02:38.423000 36217 torch/_library/triton.py:53] Triton not available, find_triton_kernels = []
+(EngineCore pid=36217) INFO 10-17 23:02:38 [worker.py:137] MLX device set to: Device(gpu, 0)
+(EngineCore pid=36217) INFO 10-17 23:02:38 [utils.py:170] Set Metal wired_limit to 13.3 GB
+(EngineCore pid=36217) INFO 10-17 23:02:38 [worker.py:145] PyTorch device set to: mps
+(EngineCore pid=36217) INFO 10-17 23:02:38 [parallel_state.py:1825] world_size=1 rank=0 local_rank=0 distributed_init_method=file:///var/folders/7g/nmg6_hj17hn31qmn93dt0r400000gn/T/vllm_dist_472c1066d9ec460fbaf1711459cbcada backend=gloo
+(EngineCore pid=36217) INFO 10-17 23:02:38 [parallel_state.py:2269] rank 0 in world size 1 is assigned as DP rank 0, PP rank 0, PCP rank 0, TP rank 0, ETP rank 0, EP rank N/A, EPLB rank N/A
+Fetching 10 files: 100%|████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 10/10 [00:00<00:00, 6009.03it/s]
+Download complete:                                                                                                                                                                            |  0.00B
+Reconstruction complete: |                                                                                                                                                           |  0.00B /  0.00B
+(EngineCore pid=36217) INFO 10-17 23:02:39 [model_lifecycle.py:427] MLX-VLM model loaded in 0.65s: Qwen/Qwen3.5-0.8B
+(EngineCore pid=36217) INFO 10-17 23:02:39 [model_adapter.py:809] Metal: LanguageModel output head is not reproducible outside its forward; using full logits.
+(EngineCore pid=36217) WARNING 10-17 23:02:39 [platform.py:1322] Hybrid model with paged attention enabled. Using block-size translation (PR #235) to convert vLLM's large block_size to a Metal kernel-compatible size.
+(EngineCore pid=36217) WARNING 10-17 23:02:39 [platform.py:1322]   Mechanism: Each vLLM block is split into multiple kernel blocks.
+(EngineCore pid=36217) WARNING 10-17 23:02:39 [platform.py:1322]   Example: vLLM block_size=144 → kernel block_size=16 (ratio=9).
+(EngineCore pid=36217) WARNING 10-17 23:02:39 [platform.py:1322]   The KV cache is reshaped (zero-copy) and block tables are expanded.
+(EngineCore pid=36217) WARNING 10-17 23:02:39 [platform.py:1322]   This is a logical transformation — physical memory is unchanged.
+(EngineCore pid=36217) INFO 10-17 23:02:39 [interface.py:989] Setting attention block size to 544 tokens to ensure that attention page size is >= mamba page size.
+(EngineCore pid=36217) INFO 10-17 23:02:39 [interface.py:1013] Padding mamba page size by 2.64% to ensure that mamba page size and attention page size are exactly equal.
+(EngineCore pid=36217) INFO 10-17 23:02:39 [utils.py:343] Using LBNHC KV cache layout.
+(EngineCore pid=36217) INFO 10-17 23:02:40 [cache_policy.py:1468] Paged attention: using --gpu-memory-utilization=0.50
+(EngineCore pid=36217) INFO 10-17 23:02:40 [cache_policy.py:1391] KV commit probe: forced 512 MiB resident in 0.05s: available 5.4->5.6 GiB, compressed +0 MiB, swap out +0 MiB; holding back 1.07 GB for the rest of the machine
+(EngineCore pid=36217) INFO 10-17 23:02:40 [cache_policy.py:1155] Upstream cache layout: reporting 3.35 GB KV budget; runtime allocation deferred until vLLM KVCacheConfig
+(EngineCore pid=36217) INFO 10-17 23:02:40 [kv_cache_utils.py:2464] CPU KV cache size: 269,127 tokens, Maximum concurrency for 262,144 tokens per request: 1.03x
+(EngineCore pid=36217) INFO 10-17 23:02:42 [__init__.py:368] Native paged-attention Metal kernels loaded
+(EngineCore pid=36217) INFO 10-17 23:02:42 [hybrid.py:122] Hybrid shared cache: 501 blocks, 3.12 GiB backing for KV and state
+(EngineCore pid=36217) INFO 10-17 23:02:42 [cache_policy.py:679] KV cache config received: 501 grouped blocks (MLX layout initialized from vLLM config)
+(EngineCore pid=36217) INFO 10-17 23:02:42 [model_runner.py:1428] Warming up model...
+(EngineCore pid=36217) INFO 10-17 23:02:42 [model_runner.py:1432] Model warm-up complete
+(EngineCore pid=36217) INFO 10-17 23:02:42 [__init__.py:387] Warming up v2 paged-attention Metal kernels...
+(EngineCore pid=36217) INFO 10-17 23:02:42 [__init__.py:395] Paged-attention Metal kernel warm-up complete
+(EngineCore pid=36217) INFO 10-17 23:02:42 [core.py:373] init engine (profile, create kv cache, warmup model) took 3.45 s (compilation: 0.44 s)
+[transformers] Qwen3VL video processing does not apply the per-frame pixel cap the reference implementation (qwen-vl-utils) applies, so some videos cost far more tokens than they would there. In v5.22 the capped behavior will become the default and `cap_pixels_per_frame` will be removed. Pass `cap_pixels_per_frame=True` to adopt the reference behavior now, or `False` to keep the current behavior and silence this warning.
+(APIServer pid=36212) INFO 10-17 23:02:44 [base.py:255] Multi-modal warmup completed in 9.832s
+(EngineCore pid=36217) INFO 10-17 23:03:01 [kv_cache_utils.py:772] kv cache group sizes [544, 544, 544, 544]
+(EngineCore pid=36217) INFO 10-17 23:03:01 [kv_cache_utils.py:773] kv lcm block sizes 544
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+Parse safetensors files: 100%|██████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████████| 1/1 [00:03<00:00,  3.80s/it]
+(EngineCore pid=36217) INFO 10-17 23:03:15 [kernel.py:408] Final IR op priority after setting platform defaults: IrOpPriorityConfig(rms_norm=['native'], fused_add_rms_norm=['native'], gelu_and_mul_sparse=['native'])
+(EngineCore pid=36217) INFO 10-17 23:03:15 [platform.py:961] Metal: chunked prefill enabled (paged attention), max_num_batched_tokens=2048
+(EngineCore pid=36217) INFO 10-17 23:03:15 [platform.py:1085] Metal memory: 19.3GB total, 7.3GB available
+(APIServer pid=36212) INFO 10-17 23:03:15 [entry.py:132] Supported tasks: ['generate']
+(APIServer pid=36212) INFO 10-17 23:03:15 [factories.py:76] Scale-out endpoints are disabled. Set --enable-scale-out to enable them.
+(APIServer pid=36212) INFO 10-17 23:03:20 [hf.py:646] Detected the chat template content format to be 'openai'. You can set `--chat-template-content-format` to override this.
+(APIServer pid=36212) WARNING 10-17 23:03:22 [serving.py:221] The chat template requires system-first ordering, so inline system messages in /v1/messages requests (e.g. Claude Code's per-turn reminders) are merged into the leading system prompt. Each new one changes the prompt prefix, so the rest of the conversation misses the prefix cache. Pass a --chat-template that accepts non-leading system messages to avoid this.
+(APIServer pid=36212) WARNING 10-17 23:03:22 [serving.py:221] The chat template requires system-first ordering, so inline system messages in /v1/messages requests (e.g. Claude Code's per-turn reminders) are merged into the leading system prompt. Each new one changes the prompt prefix, so the rest of the conversation misses the prefix cache. Pass a --chat-template that accepts non-leading system messages to avoid this.
+(APIServer pid=36212) INFO 10-17 23:03:22 [entry.py:136] Starting vLLM server on http://0.0.0.0:8000
+(APIServer pid=36212) INFO 10-17 23:03:22 [launcher.py:60] Available routes are:
+(APIServer pid=36212) INFO 10-17 23:03:22 [launcher.py:69] Route: /openapi.json, Methods: GET, HEAD
+(APIServer pid=36212) INFO 10-17 23:03:22 [launcher.py:69] Route: /docs, Methods: GET, HEAD
+(APIServer pid=36212) INFO 10-17 23:03:22 [launcher.py:69] Route: /docs/oauth2-redirect, Methods: GET, HEAD
+(APIServer pid=36212) INFO 10-17 23:03:22 [launcher.py:69] Route: /redoc, Methods: GET, HEAD
+(APIServer pid=36212) INFO 10-17 23:03:22 [launcher.py:69] Route: /load, Methods: GET
+(APIServer pid=36212) INFO 10-17 23:03:22 [launcher.py:69] Route: /version, Methods: GET
+(APIServer pid=36212) INFO 10-17 23:03:22 [launcher.py:69] Route: /kv_event_sources, Methods: GET
+(APIServer pid=36212) INFO 10-17 23:03:22 [launcher.py:69] Route: /health, Methods: GET
+(APIServer pid=36212) INFO 10-17 23:03:22 [launcher.py:69] Route: /metrics, Methods: GET
+(APIServer pid=36212) INFO 10-17 23:03:22 [launcher.py:69] Route: /tokenize, Methods: POST
+(APIServer pid=36212) INFO 10-17 23:03:22 [launcher.py:69] Route: /detokenize, Methods: POST
+(APIServer pid=36212) INFO 10-17 23:03:22 [launcher.py:69] Route: /v1/models, Methods: GET
+(APIServer pid=36212) INFO 10-17 23:03:22 [launcher.py:69] Route: /ping, Methods: GET
+(APIServer pid=36212) INFO 10-17 23:03:22 [launcher.py:69] Route: /ping, Methods: POST
+(APIServer pid=36212) INFO 10-17 23:03:22 [launcher.py:69] Route: /invocations, Methods: POST
+(APIServer pid=36212) INFO 10-17 23:03:22 [launcher.py:69] Route: /v1/chat/completions, Methods: POST
+(APIServer pid=36212) INFO 10-17 23:03:22 [launcher.py:69] Route: /v1/chat/completions/batch, Methods: POST
+(APIServer pid=36212) INFO 10-17 23:03:22 [launcher.py:69] Route: /v1/responses, Methods: POST
+(APIServer pid=36212) INFO 10-17 23:03:22 [launcher.py:69] Route: /v1/responses/{response_id}, Methods: GET
+(APIServer pid=36212) INFO 10-17 23:03:22 [launcher.py:69] Route: /v1/responses/{response_id}/cancel, Methods: POST
+(APIServer pid=36212) INFO 10-17 23:03:22 [launcher.py:69] Route: /v1/completions, Methods: POST
+(APIServer pid=36212) INFO 10-17 23:03:22 [launcher.py:69] Route: /v1/messages, Methods: POST
+(APIServer pid=36212) INFO 10-17 23:03:22 [launcher.py:69] Route: /v1/messages/count_tokens, Methods: POST
+(APIServer pid=36212) INFO 10-17 23:03:22 [launcher.py:69] Route: /generative_scoring, Methods: POST
+(APIServer pid=36212) INFO 10-17 23:03:22 [launcher.py:69] Route: /scale_elastic_ep, Methods: POST
+(APIServer pid=36212) INFO 10-17 23:03:22 [launcher.py:69] Route: /is_scaling_elastic_ep, Methods: POST
+INFO:     Started server process [36212]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+```
+
 ## Reference
 
+* https://docs.vllm.ai/en/latest/getting_started/installation/gpu/
+* https://docs.vllm.ai/en/latest/cli/
 * https://github.com/vllm-project/vllm-metal
+* https://github.com/vllm-project/vllm-metal/blob/main/docs/supported_models.md
 * https://vllm.ai/blog/2026-09-22-vllm-metal-v0-28-0
 * https://developer.apple.com/metal/
 * https://github.com/ml-explore/mlx
 * https://github.com/ml-explore/mlx-lm
-* https://docs.vllm.ai/en/latest/getting_started/installation/gpu/
-* https://docs.vllm.ai/en/latest/cli/
-* https://github.com/vllm-project/vllm-metal/blob/main/docs/supported_models.md
+* https://github.com/Blaizzy/mlx-vlm
 * https://huggingface.co/mlx-community
-* https://docs.vllm.ai/en/latest/design/plugin_system/
