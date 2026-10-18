@@ -11,8 +11,8 @@ The M3 Pro is a more powerful version of the M3, with five or six performance co
 
 vLLM官网如是说：
 
-* vLLM has experimental support for macOS with Apple Silicon. For now, users must build from source to natively run on macOS. 
-* Currently, there are no pre-built Apple silicon CPU wheels.
+* vLLM has experimental support for macOS with Apple Silicon. For now, users must build from source to natively run on macOS. (存疑，这个正在逐渐改变，对于稳定版本，目前已经可以直接安装了)
+* Currently, there are no pre-built Apple silicon CPU wheels. 
 * Currently the CPU implementation for macOS supports FP32 and FP16 datatypes.
 * For GPU-accelerated inference on Apple Silicon using Metal, check out vllm-metal, a community-maintained hardware plugin that uses MLX as the compute backend.
 
@@ -25,7 +25,20 @@ vLLM 官方提供两种从源码安装的方式：
 
 Python-only Build的本质是，核心原生扩展（native extensions）已经由官方预先编译并打包为wheel文件，安装过程只需要处理Python层代码，而不需要重新编译底层运行时组件。Python-only Build的主要价值就是提高开发迭代效率，避免每次修改Python代码都重新编译整个Native Runtime，因为Full Build的成本很高。
 
-## Build from source
+## Install
+
+### 稳定版本直接安装
+稳定版本可以直接安装，不需要从源代码编译。[https://vllm.ai/]()首页选择`Stable (0.31.0)`/`CPU`/`Python (uv)`对应安装脚本：
+
+```
+uv pip install vllm --extra-index-url https://wheels.vllm.ai/0.31.0/cpu --torch-backend cpu
+```
+
+查看[https://wheels.vllm.ai/0.31.0/cpu/vllm]()目录，的确有macosx对应wheel：
+
+`vllm-0.31.0+cpu-cp312-cp312-macosx_11_0_arm64.whl`
+
+### Build from source
 
 Create a new Python environment. 默认环境名称是`.venv`，这里指定`vllm-dev`，并且放在`venvs`目录统一管理。
 
@@ -459,7 +472,7 @@ vllm serve Qwen/Qwen3-0.6B
 
 这和quickstart示例（`vllm serve Qwen/Qwen2.5-1.5B-Instruct`）一样，会报错。解决方法上面已经给出。
 
-## 其他问题
+### 多个vllm命令混用的问题
 
 因为在多个地方安装vllm，可能导致混用而出错。比如，先用brew安装了vllm-metal，再从源码安装vllm，启动成功，但是报错：
 
@@ -526,7 +539,7 @@ python -c 'import sys, vllm; print(sys.executable); print(vllm.__file__)'
 * 这三类问题都是内存相关的，可以粗略一窥vLLM的内存格局。
 * 就内存而言，Training时代，参数量决定成本；Inference时代，KV Cache决定成本。
 * 启动成功后，能够看到本地部署的进程模型，APIServer、EngineCore、Worker。
-* 错误日志的可读性在改进。
+* 对macOS的支持在逐渐改进中。
 
 ## References
 
