@@ -1,4 +1,4 @@
-# vLLM on Apple silicon CPU
+# vLLM Quickstart on Apple silicon CPU
 
 ## Background
 
@@ -68,7 +68,61 @@ Installed 1 package in 2ms
 
 ## Serve
 
-### 使用quickstart示例启动
+### 多个vllm命令混用的问题
+
+因为在多个地方安装vllm，可能导致混用而出错。比如，先用brew安装了vllm-metal，再从源码安装vllm，启动成功，但是报错：
+
+```
+vllm on  main via △ via 🐍 v3.12.13 (vllm-dev)
+❯ vllm serve Qwen/Qwen2.5-1.5B-Instruct
+...
+(APIServer pid=4497) ERROR 10-17 10:57:50 [registry.py:1031] Error saving model info cache.
+(APIServer pid=4497) ERROR 10-17 10:57:50 [registry.py:1031] Traceback (most recent call last):
+(APIServer pid=4497) ERROR 10-17 10:57:50 [registry.py:1031]   File "/opt/homebrew/Cellar/vllm-metal/0.31.0/libexec/lib/python3.12/site-packages/vllm/model_executor/models/registry.py", line 1023, in _save_modelinfo_to_cache
+(APIServer pid=4497) ERROR 10-17 10:57:50 [registry.py:1031]     "modelinfo": asdict(mi),
+(APIServer pid=4497) ERROR 10-17 10:57:50 [registry.py:1031]                  ^^^^^^^^^^
+(APIServer pid=4497) ERROR 10-17 10:57:50 [registry.py:1031]   File "/opt/homebrew/Cellar/python@3.12/3.12.15/Frameworks/Python.framework/Versions/3.12/lib/python3.12/dataclasses.py", line 1329, in asdict
+(APIServer pid=4497) ERROR 10-17 10:57:50 [registry.py:1031]     return _asdict_inner(obj, dict_factory)
+(APIServer pid=4497) ERROR 10-17 10:57:50 [registry.py:1031]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+(APIServer pid=4497) ERROR 10-17 10:57:50 [registry.py:1031]   File "/opt/homebrew/Cellar/python@3.12/3.12.15/Frameworks/Python.framework/Versions/3.12/lib/python3.12/dataclasses.py", line 1339, in _asdict_inner
+(APIServer pid=4497) ERROR 10-17 10:57:50 [registry.py:1031]     f.name: _asdict_inner(getattr(obj, f.name), dict)
+(APIServer pid=4497) ERROR 10-17 10:57:50 [registry.py:1031]                           ^^^^^^^^^^^^^^^^^^^^
+(APIServer pid=4497) ERROR 10-17 10:57:50 [registry.py:1031] AttributeError: '_ModelInfo' object has no attribute 'supports_mamba_prefix_caching'
+...
+INFO:     Started server process [4497]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+```
+
+本来应该用`vllm-dev`的Python包，却使用了`/opt/homebrew/Cellar/vllm-metal`的Python包。可通过以下命令诊断问题：
+
+```
+❯ echo "$VIRTUAL_ENV"
+
+❯ which vllm
+/opt/homebrew/bin/vllm
+
+❯ which -a vllm
+/.../venvs/vllm-dev/bin/vllm
+/opt/homebrew/bin/vllm
+
+❯ head -n 1 "$(which vllm)"
+#!/opt/homebrew/Cellar/vllm-metal/0.31.0/libexec/bin/python3.12
+
+❯ echo "$PATH"
+/.../venvs/vllm-dev/bin:...:/opt/homebrew/bin:...
+
+# 确认实际导入的Python模块
+python -c 'import sys, vllm; print(sys.executable); print(vllm.__file__)'
+```
+
+明明PATH中的顺序是对的，却使用了错误的命令，怀疑是缓存的问题，通过rehash解决。rehash的作用是刷新命令查找缓存，让zsh重新扫描PATH中的可执行命令。
+
+```
+❯ rehash
+```
+
+### 解决vllm命令路径问题后
 
 ```
 vllm serve Qwen/Qwen2.5-1.5B-Instruct
@@ -472,74 +526,21 @@ vllm serve Qwen/Qwen3-0.6B
 
 这和quickstart示例（`vllm serve Qwen/Qwen2.5-1.5B-Instruct`）一样，会报错。解决方法上面已经给出。
 
-### 多个vllm命令混用的问题
-
-因为在多个地方安装vllm，可能导致混用而出错。比如，先用brew安装了vllm-metal，再从源码安装vllm，启动成功，但是报错：
-
-```
-vllm on  main via △ via 🐍 v3.12.13 (vllm-dev)
-❯ vllm serve Qwen/Qwen2.5-1.5B-Instruct
-...
-(APIServer pid=4497) ERROR 10-17 10:57:50 [registry.py:1031] Error saving model info cache.
-(APIServer pid=4497) ERROR 10-17 10:57:50 [registry.py:1031] Traceback (most recent call last):
-(APIServer pid=4497) ERROR 10-17 10:57:50 [registry.py:1031]   File "/opt/homebrew/Cellar/vllm-metal/0.31.0/libexec/lib/python3.12/site-packages/vllm/model_executor/models/registry.py", line 1023, in _save_modelinfo_to_cache
-(APIServer pid=4497) ERROR 10-17 10:57:50 [registry.py:1031]     "modelinfo": asdict(mi),
-(APIServer pid=4497) ERROR 10-17 10:57:50 [registry.py:1031]                  ^^^^^^^^^^
-(APIServer pid=4497) ERROR 10-17 10:57:50 [registry.py:1031]   File "/opt/homebrew/Cellar/python@3.12/3.12.15/Frameworks/Python.framework/Versions/3.12/lib/python3.12/dataclasses.py", line 1329, in asdict
-(APIServer pid=4497) ERROR 10-17 10:57:50 [registry.py:1031]     return _asdict_inner(obj, dict_factory)
-(APIServer pid=4497) ERROR 10-17 10:57:50 [registry.py:1031]            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-(APIServer pid=4497) ERROR 10-17 10:57:50 [registry.py:1031]   File "/opt/homebrew/Cellar/python@3.12/3.12.15/Frameworks/Python.framework/Versions/3.12/lib/python3.12/dataclasses.py", line 1339, in _asdict_inner
-(APIServer pid=4497) ERROR 10-17 10:57:50 [registry.py:1031]     f.name: _asdict_inner(getattr(obj, f.name), dict)
-(APIServer pid=4497) ERROR 10-17 10:57:50 [registry.py:1031]                           ^^^^^^^^^^^^^^^^^^^^
-(APIServer pid=4497) ERROR 10-17 10:57:50 [registry.py:1031] AttributeError: '_ModelInfo' object has no attribute 'supports_mamba_prefix_caching'
-...
-INFO:     Started server process [4497]
-INFO:     Waiting for application startup.
-INFO:     Application startup complete.
-```
-
-本来应该用`vllm-dev`的Python包，却使用了`/opt/homebrew/Cellar/vllm-metal`的Python包。可通过以下命令诊断问题：
-
-```
-❯ echo "$VIRTUAL_ENV"
-
-❯ which vllm
-/opt/homebrew/bin/vllm
-
-❯ which -a vllm
-/.../venvs/vllm-dev/bin/vllm
-/opt/homebrew/bin/vllm
-
-❯ head -n 1 "$(which vllm)"
-#!/opt/homebrew/Cellar/vllm-metal/0.31.0/libexec/bin/python3.12
-
-❯ echo "$PATH"
-/.../venvs/vllm-dev/bin:...:/opt/homebrew/bin:...
-
-# 确认实际导入的Python模块
-python -c 'import sys, vllm; print(sys.executable); print(vllm.__file__)'
-```
-
-明明PATH中的顺序是对的，却使用了错误的命令，怀疑是缓存的问题，通过rehash解决。rehash的作用是刷新命令查找缓存，让zsh重新扫描PATH中的可执行命令。
-
-```
-❯ rehash
-```
-
 ## Summary
 
 启动过程中碰到3类问题：
 
+* vllm和vllm-metal混用时的路径问题 -> 正确设置路径，必要时用rehash
 * 系统可用内存不够，小于vLLM预留内存 -> 增大系统可用内存，或者降低vLLM预留内存
 * vLLM拿到了预留内存，但是模型权重占用太多，KV cache不够 -> 调大vLLM预留内存，或者使用更小的模型
 * 使用小的模型，但是上下文很长，权重加载成功，KV cache不够 -> 调小上下文长度
 
 几点收获：
 
-* 这三类问题都是内存相关的，可以粗略一窥vLLM的内存格局。
+* 三类配置问题都是内存相关的，可以粗略一窥vLLM的内存管理机制。
 * 就内存而言，Training时代，参数量决定成本；Inference时代，KV Cache决定成本。
 * 启动成功后，能够看到本地部署的进程模型，APIServer、EngineCore、Worker。
-* 对macOS的支持在逐渐改进中。
+* 几个月以来，对macOS的支持在不断改进中。
 
 ## References
 

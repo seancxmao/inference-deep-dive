@@ -1,4 +1,4 @@
-# vLLM Metal Dev
+# Build vLLM Metal
 
 ## Background
 
@@ -277,27 +277,6 @@ Installed 12 packages in 32ms
  + ruff==0.16.0
  ~ vllm-metal==0.31.0 (from file:///Users/maochenxiao/workspace/aiengineer/projects/community/vllm-metal)
 ```
-
-## Serve
-
-```
-vllm serve Qwen/Qwen3-0.6B --gpu-memory-utilization 0.2 --max_model_len 4096
-```
-
-关键点：
-
-* MLX device set to: Device(gpu, 0)
-* PyTorch device set to: mps
-* MLX-LM model loaded in 0.42s: Qwen/Qwen3-0.6B
-* Native paged-attention Metal kernels loaded
-* Final IR op priority after setting platform defaults: IrOpPriorityConfig(rms_norm=['native'], fused_add_rms_norm=['native'], gelu_and_mul_sparse=['native'])
-* Metal: chunked prefill enabled (paged attention), max_num_batched_tokens=2048
-
-涉及3个进程：
-
-* APIServer
-* EngineCore
-* multiprocessing.resource_tracker
 
 ## References
 

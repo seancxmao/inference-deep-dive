@@ -1,4 +1,4 @@
-# vlLM on Apple silicon GPU
+# vLLM on Apple silicon GPU
 
 ## Background
 
@@ -22,13 +22,19 @@ The Metal framework gives your app direct access to a device’s graphics proces
 
 MLX is an array framework for machine learning on Apple silicon, brought to you by Apple machine learning research. The design of MLX is inspired by frameworks like NumPy, PyTorch, Jax, and ArrayFire.
 
-### mlx-lm
+### MLX-LM
 
 MLX LM is a Python package for generating text and fine-tuning large language models on Apple silicon with MLX.
+
+### MLX-VLM
+
+MLX-VLM is a package for inference and fine-tuning of Vision Language Models (VLMs) on your Mac using MLX.
 
 ## Install stable release with Homebrew
 
 ### Install
+
+You can install v0.29.0 (2026.9.11) with Homebrew.
 
 Install the stable release:
 
@@ -221,6 +227,8 @@ INFO:     Application startup complete.
 
 ### Install
 
+Homebrew安装是比较新的方式，以前都是用这个老的方法。
+
 ```
 ❯ curl -fsSL https://raw.githubusercontent.com/vllm-project/vllm-metal/main/install.sh | bash
 Fetching dev release...
@@ -404,6 +412,31 @@ INFO:     Started server process [36212]
 INFO:     Waiting for application startup.
 INFO:     Application startup complete.
 ```
+
+关键点：
+
+* MLX device set to: Device(gpu, 0)
+* PyTorch device set to: mps
+* MLX-VLM model loaded in 0.65s: Qwen/Qwen3.5-0.8B
+* Native paged-attention Metal kernels loaded
+* Final IR op priority after setting platform defaults: IrOpPriorityConfig(rms_norm=['native'], fused_add_rms_norm=['native'], gelu_and_mul_sparse=['native'])
+* Metal: chunked prefill enabled (paged attention), max_num_batched_tokens=2048
+
+涉及3个进程：
+
+* APIServer
+* EngineCore
+* multiprocessing.resource_tracker
+
+换一个模型，情况类似：
+
+```
+vllm serve Qwen/Qwen3-0.6B --gpu-memory-utilization 0.2 --max_model_len 4096
+```
+
+略有区别的是：
+
+* MLX-LM model loaded in 0.42s: Qwen/Qwen3-0.6B
 
 ## Reference
 
