@@ -108,7 +108,60 @@ VS Code <-> debug adapter <-> 被调试程序，三者进行交互完成调试�
 
 ## Debug vLLM with VS Code
 
-TODO
+### Python虚拟环境
+
+实验发现，在项目内部生成的Python虚拟环境，VS Code能够自动识别，在命令面板使用`Python: Select Interpreter`直接选择，此后在`Run and Debug`会正确使用。
+
+但是，在项目之外独立创建的Python虚拟环境，跟VS Code的结合不太丝滑。比如说，在项目之外创建的Python虚拟环境，无法被自动识别，需要手动指定`python`路径，但是不巧的是，虚拟环境中的`python`可能只是软链接，它指向的是别的地方，从而导致`Run and Debug`不能完整识别虚拟环境，报错找不到包。
+
+比如，`venvs/vllm-dev/bin/python`，实际指向的是：
+
+```
+/.../.local/share/uv/python/cpython-3.12.13-macos-aarch64-none/bin/python
+```
+
+有两个方法：
+
+（1）修改launch.json的配置，实验发现可行
+
+```
+"python": ".../venvs/vllm-dev/bin/python"
+```
+
+或者：
+
+```
+"python": "${command:python.interpreterPath}"
+```
+
+（2）修改settings.json配置，不知为何不起作用
+
+```
+{
+    "python-envs.globalSearchPaths": [
+        "/.../venvs"
+    ]
+}
+```
+
+诊断虚拟环境用的脚本，记录备用：
+
+```
+import sys
+import torch
+
+print("sys.executable:", sys.executable)
+print("sys.prefix:", sys.prefix)
+print("sys.base_prefix:", sys.base_prefix)
+print("torch.__file__:", torch.__file__)
+```
+
+结论是，对于使用VS Code开发，优先使用项目内的虚拟环境。
+
+```
+cd vllm
+uv venv --python 3.12 --seed --managed-python
+```
 
 ## References
 
